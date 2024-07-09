@@ -16,4 +16,4 @@ The `NotifyMe` package is a robust and flexible logging library for Go applicati
 To install the `NotifyMe` package, use the following command:
 
 ```bash
-go get github.com/yourusername/NotifyMe
+go get github.com/AmosSParker/NotifyMe
