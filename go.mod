@@ -1,3 +1,3 @@
-module github.com/AmosSParker/NotifyMe.git
+module github.com/AmosSParker/NotifyMe
 
 go 1.19

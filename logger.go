@@ -53,6 +53,30 @@ func InitializeGlobalLogger(level int, output ...string) {
 	}
 }
 
+// NewLogger creates and returns a new Logger instance
+func NewLogger(level int, output ...string) *Logger {
+	// Default to stdout if no output file is specified
+	var logOutput *os.File
+	if len(output) > 0 {
+		var err error
+		logOutput, err = os.OpenFile(output[0], os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+		if err != nil {
+			log.Fatalf("Failed to open log file: %v", err)
+		}
+	} else {
+		logOutput = os.Stdout
+	}
+
+	// Initialize loggers for each level
+	return &Logger{
+		infoLogger:     log.New(logOutput, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile),
+		warnLogger:     log.New(logOutput, "WARN: ", log.Ldate|log.Ltime|log.Lshortfile),
+		errorLogger:    log.New(logOutput, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile),
+		criticalLogger: log.New(logOutput, "CRITICAL: ", log.Ldate|log.Ltime|log.Lshortfile),
+		level:          level,
+	}
+}
+
 // SetLevel changes the logging level of the global logger instance
 func SetLevel(level int) {
 	globalLogger.mu.Lock()
@@ -77,32 +101,32 @@ func logMessage(logger *log.Logger, level string, message string, context string
 }
 
 // Info logs an informational message if the log level is set to INFO or lower
-func Info(message string, context string, args ...interface{}) {
-	if globalLogger.level <= LevelInfo {
-		logMessage(globalLogger.infoLogger, "INFO", message, context, args...)
+func (l *Logger) Info(message string) {
+	if l.level <= LevelInfo {
+		logMessage(l.infoLogger, "INFO", message, "INFO")
 	}
 }
 
 // Warn logs a warning message if the log level is set to WARN or lower
-func Warn(message string, context string, args ...interface{}) {
-	if globalLogger.level <= LevelWarn {
-		logMessage(globalLogger.warnLogger, "WARN", message, context, args...)
+func (l *Logger) Warn(message string) {
+	if l.level <= LevelWarn {
+		logMessage(l.warnLogger, "WARN", message, "WARN")
 	}
 }
 
 // Error logs an error message if the log level is set to ERROR or lower
-func Error(message string, context string, args ...interface{}) {
-	if globalLogger.level <= LevelError {
-		logMessage(globalLogger.errorLogger, "ERROR", message, context, args...)
+func (l *Logger) Error(message string) {
+	if l.level <= LevelError {
+		logMessage(l.errorLogger, "ERROR", message, "ERROR")
 	}
 }
 
 // Critical logs a critical message if the log level is set to CRITICAL or lower
-func Critical(message string, context string, args ...interface{}) error {
-	if globalLogger.level <= LevelCritical {
-		logMessage(globalLogger.criticalLogger, "CRITICAL", message, context, args...)
+func (l *Logger) Critical(message string) error {
+	if l.level <= LevelCritical {
+		logMessage(l.criticalLogger, "CRITICAL", message, "CRITICAL")
 	}
-	return fmt.Errorf(message, args...)
+	return fmt.Errorf(message)
 }
 
 // Notify handles logging based on the message type
@@ -119,14 +143,32 @@ func Notify(messageType string, message string, context ...interface{}) {
 	// Switch case to handle different message types
 	switch messageType {
 	case "Info":
-		Info(formattedMessage, "Notify")
+		globalLogger.Info(formattedMessage)
 	case "Warn":
-		Warn(formattedMessage, "Notify")
+		globalLogger.Warn(formattedMessage)
 	case "Error":
-		Error(formattedMessage, "Notify")
+		globalLogger.Error(formattedMessage)
 	case "Critical":
-		Critical(formattedMessage, "Notify")
+		globalLogger.Critical(formattedMessage)
 	default:
-		Error("Unknown message type:", "Notify")
+		globalLogger.Error("Unknown message type: " + messageType)
+	}
+}
+
+// InitFromEnv sets the log level based on an environment variable
+func InitFromEnv() {
+	if logLevel, exists := os.LookupEnv("LOG_LEVEL"); exists {
+		switch logLevel {
+		case "INFO":
+			SetLevel(LevelInfo)
+		case "WARN":
+			SetLevel(LevelWarn)
+		case "ERROR":
+			SetLevel(LevelError)
+		case "CRITICAL":
+			SetLevel(LevelCritical)
+		default:
+			SetLevel(LevelError) // Default level if an unknown value is found
+		}
 	}
 }
