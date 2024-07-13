@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 )
 
 // Logger struct holds different loggers for various log levels
@@ -13,10 +14,12 @@ type Logger struct {
 	errorLogger    *log.Logger
 	criticalLogger *log.Logger
 	level          int
+	mu             sync.Mutex // Added mutex for thread safety
 }
 
 // Global logger instance
 var globalLogger *Logger
+var once sync.Once // Ensure singleton pattern for global logger
 
 // Log levels constants
 const (
@@ -52,7 +55,14 @@ func newLoggerInstance(level int, output ...string) *Logger {
 
 // InitializeGlobalLogger creates and initializes the global logger instance
 func InitializeGlobalLogger(level int, output ...string) {
-	globalLogger = newLoggerInstance(level, output...)
+	once.Do(func() {
+		globalLogger = newLoggerInstance(level, output...)
+	})
+}
+
+// GetGlobalLogger returns the global logger instance
+func GetGlobalLogger() *Logger {
+	return globalLogger
 }
 
 // NewLogger creates and returns a new Logger instance
@@ -63,12 +73,16 @@ func NewLogger(level int, output ...string) *Logger {
 // SetLevel sets the global log level
 func SetLevel(level int) {
 	if globalLogger != nil {
+		globalLogger.mu.Lock()
+		defer globalLogger.mu.Unlock()
 		globalLogger.level = level
 	}
 }
 
 // LogWithLevel logs a message with the given numeric log level
 func (l *Logger) LogWithLevel(level int, message string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	switch level {
 	case LevelInfo:
 		l.Info(message)
