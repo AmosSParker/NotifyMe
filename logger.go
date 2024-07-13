@@ -1,6 +1,7 @@
 package notifyme
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -167,4 +168,31 @@ func InitFromEnv() {
 			SetLevel(LevelError) // Default level if an unknown value is found
 		}
 	}
+}
+
+func (l *Logger) MarshalJSON() ([]byte, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return json.Marshal(&struct {
+		Level int `json:"level"`
+	}{
+		Level: l.level,
+	})
+}
+
+func (l *Logger) UnmarshalJSON(data []byte) error {
+	aux := &struct {
+		Level int `json:"level"`
+	}{}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.level = aux.Level
+	l.infoLogger = log.New(os.Stdout, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile)
+	l.warnLogger = log.New(os.Stdout, "WARN: ", log.Ldate|log.Ltime|log.Lshortfile)
+	l.errorLogger = log.New(os.Stdout, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
+	l.criticalLogger = log.New(os.Stdout, "CRITICAL: ", log.Ldate|log.Ltime|log.Lshortfile)
+	return nil
 }
