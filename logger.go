@@ -60,6 +60,13 @@ func NewLogger(level int, output ...string) *Logger {
 	return newLoggerInstance(level, output...)
 }
 
+// SetLevel sets the global log level
+func SetLevel(level int) {
+	if globalLogger != nil {
+		globalLogger.level = level
+	}
+}
+
 // LogWithLevel logs a message with the given numeric log level
 func (l *Logger) LogWithLevel(level int, message string) {
 	switch level {
@@ -145,12 +152,5 @@ func InitFromEnv() {
 		default:
 			SetLevel(LevelError) // Default level if an unknown value is found
 		}
-	}
-}
-
-// SetLevel sets the global log level
-func SetLevel(level int) {
-	if globalLogger != nil {
-		globalLogger.level = level
 	}
 }
