@@ -80,71 +80,39 @@ func SetLevel(level int) {
 	}
 }
 
-// LogWithLevel logs a message with the given numeric log level
-func (l *Logger) LogWithLevel(level int, message string) {
+// Log logs a message with the given log level
+func (l *Logger) Log(level int, message string, optionalParams ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	fullMessage := message
+	for _, param := range optionalParams {
+		fullMessage += fmt.Sprintf(" %v", param)
+	}
 	switch level {
 	case LevelInfo:
-		l.Info(message)
-	case LevelWarn:
-		l.Warn(message)
-	case LevelError:
-		l.Error(message)
-	case LevelCritical:
-		l.Critical(message)
-	default:
-		l.Error(fmt.Sprintf("Unknown log level: %d", level))
-	}
-}
-
-// Info logs an informational message if the log level is set to INFO or lower
-func (l *Logger) Info(message string, optionalParams ...interface{}) {
-	if l.level <= LevelInfo {
-		fullMessage := message
-		for _, param := range optionalParams {
-			fullMessage += fmt.Sprintf(" %v", param)
+		if l.level <= LevelInfo {
+			logMessage(l.infoLogger, "INFO", fullMessage)
 		}
-		logMessage(l.infoLogger, "INFO", fullMessage)
+	case LevelWarn:
+		if l.level <= LevelWarn {
+			logMessage(l.warnLogger, "WARN", fullMessage)
+		}
+	case LevelError:
+		if l.level <= LevelError {
+			logMessage(l.errorLogger, "ERROR", fullMessage)
+		}
+	case LevelCritical:
+		if l.level <= LevelCritical {
+			logMessage(l.criticalLogger, "CRITICAL", fullMessage)
+		}
+	default:
+		logMessage(l.errorLogger, "ERROR", fmt.Sprintf("Unknown log level: %d", level))
 	}
 }
 
 // logMessage is a helper function to log the message
 func logMessage(logger *log.Logger, level string, message string) {
 	logger.Printf("[%s] %s", level, message)
-}
-
-// Warn logs a warning message if the log level is set to WARN or lower
-func (l *Logger) Warn(message string, optionalParams ...interface{}) {
-	if l.level <= LevelWarn {
-		fullMessage := message
-		for _, param := range optionalParams {
-			fullMessage += fmt.Sprintf(" %v", param)
-		}
-		logMessage(l.warnLogger, "WARN", fullMessage)
-	}
-}
-
-// Error logs an error message if the log level is set to ERROR or lower
-func (l *Logger) Error(message string, optionalParams ...interface{}) {
-	if l.level <= LevelError {
-		fullMessage := message
-		for _, param := range optionalParams {
-			fullMessage += fmt.Sprintf(" %v", param)
-		}
-		logMessage(l.errorLogger, "ERROR", fullMessage)
-	}
-}
-
-// Critical logs a critical message if the log level is set to CRITICAL or lower
-func (l *Logger) Critical(message string, optionalParams ...interface{}) {
-	if l.level <= LevelCritical {
-		fullMessage := message
-		for _, param := range optionalParams {
-			fullMessage += fmt.Sprintf(" %v", param)
-		}
-		logMessage(l.criticalLogger, "Critical", fullMessage)
-	}
 }
 
 // Notify handles logging based on the message type
@@ -161,15 +129,15 @@ func Notify(messageType string, message string, context ...interface{}) {
 	// Switch case to handle different message types
 	switch messageType {
 	case "Info":
-		globalLogger.Info(formattedMessage)
+		globalLogger.Log(LevelInfo, formattedMessage)
 	case "Warn":
-		globalLogger.Warn(formattedMessage)
+		globalLogger.Log(LevelWarn, formattedMessage)
 	case "Error":
-		globalLogger.Error(formattedMessage)
+		globalLogger.Log(LevelError, formattedMessage)
 	case "Critical":
-		globalLogger.Critical(formattedMessage)
+		globalLogger.Log(LevelCritical, formattedMessage)
 	default:
-		globalLogger.Error("Unknown message type: " + messageType)
+		globalLogger.Log(LevelError, "Unknown message type: "+messageType)
 	}
 }
 
