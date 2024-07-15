@@ -99,30 +99,51 @@ func (l *Logger) LogWithLevel(level int, message string) {
 }
 
 // Info logs an informational message if the log level is set to INFO or lower
-func (l *Logger) Info(message string) {
+func (l *Logger) Info(message string, optionalParams ...interface{}) {
 	if l.level <= LevelInfo {
-		l.infoLogger.Println(message)
+		fullMessage := message
+		for _, param := range optionalParams {
+			fullMessage += fmt.Sprintf(" %v", param)
+		}
+		logMessage(l.infoLogger, "INFO", fullMessage)
 	}
 }
 
+// logMessage is a helper function to log the message
+func logMessage(logger *log.Logger, level string, message string) {
+	logger.Printf("[%s] %s", level, message)
+}
+
 // Warn logs a warning message if the log level is set to WARN or lower
-func (l *Logger) Warn(message string) {
+func (l *Logger) Warn(message string, optionalParams ...interface{}) {
 	if l.level <= LevelWarn {
-		l.warnLogger.Println(message)
+		fullMessage := message
+		for _, param := range optionalParams {
+			fullMessage += fmt.Sprintf(" %v", param)
+		}
+		logMessage(l.warnLogger, "WARN", fullMessage)
 	}
 }
 
 // Error logs an error message if the log level is set to ERROR or lower
-func (l *Logger) Error(message string) {
+func (l *Logger) Error(message string, optionalParams ...interface{}) {
 	if l.level <= LevelError {
-		l.errorLogger.Println(message)
+		fullMessage := message
+		for _, param := range optionalParams {
+			fullMessage += fmt.Sprintf(" %v", param)
+		}
+		logMessage(l.errorLogger, "ERROR", fullMessage)
 	}
 }
 
 // Critical logs a critical message if the log level is set to CRITICAL or lower
-func (l *Logger) Critical(message string) {
+func (l *Logger) Critical(message string, optionalParams ...interface{}) {
 	if l.level <= LevelCritical {
-		l.criticalLogger.Println(message)
+		fullMessage := message
+		for _, param := range optionalParams {
+			fullMessage += fmt.Sprintf(" %v", param)
+		}
+		logMessage(l.criticalLogger, "Critical", fullMessage)
 	}
 }
 
